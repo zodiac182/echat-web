@@ -1,7 +1,7 @@
 <template>
     <el-container style="height: 100vh; width:100%;">
         <!-- 左侧工单列表 -->
-        <el-aside style="height: 100vh;  border: 1px solid var(--el-border-color); border-radius: 5px;">
+        <el-aside class="sidebar-container">
             <el-scrollbar height="100%">
                 <el-menu @select="handleSelect" class="ticket-menu" active-text-color="#ffd04b"
                     background-color=var(--el-menu-bg-color) text-color="#dddddd" default-active=''>
@@ -12,7 +12,7 @@
                                 <div>
                                     {{ truncateText(ticket.title, 10) }}
                                     <el-badge class="unread-badge" :show-zero=false :max="99"
-                                        :value="ticket.unreadMsgCount">
+                                        :value="ticket.unReadMsgCount">
                                     </el-badge>
                                 </div>
                                 <div>
@@ -90,7 +90,7 @@ async function handleSelect(index) {
     toUserName.value = selectedTicket.createBy
     ticketId.value = selectedTicket.ticketId
 
-    tickets.value[index].unreadMsgCount = 0
+    tickets.value[index].unReadMsgCount = 0
     // 等数据传递给 ChatWindow
     await nextTick()
 
@@ -114,7 +114,7 @@ function connectMgrWebSocket() {
     console.log('新建MGR websocket', userId.value)
     if (!userId.value) return
 
-    mgrWS.value = new WebSocket(`${getMgrWebSocketUrl()}?userId=${userId.value}`)
+    mgrWS.value = new WebSocket(`${getMgrWebSocketUrl()}?userId=${userId.value}&userName=${userName.value}`)
 
     mgrWS.value.onopen = () => {
         isConnected.value = true
@@ -137,6 +137,7 @@ function connectMgrWebSocket() {
     }
 }
 
+// 解析消息
 function parseMessage(raw) {
     let data;
     try {
@@ -145,7 +146,36 @@ function parseMessage(raw) {
         console.error('解析失败:', e);
         return [null, null];
     }
-    tickets.value = data
+
+    // ticket 列表
+    if (data?.tickets?.length > 0) {
+        tickets.value = data.tickets
+    }
+
+    // 未读消息
+    if (data?.unReadMsg?.length > 0) {
+        tickets.value = tickets.value.map(ticket => {
+            const unReadMsgCount = data.unReadMsg.find(msg =>
+                msg.ticket_id === ticket.ticketId
+            );
+            // 添加对 unReadMsgCount 是否为 undefined 的判断
+            return {
+                ...ticket,
+                unReadMsgCount: unReadMsgCount ? unReadMsgCount.count : 0 // 或者其他默认值
+            };
+        });
+    }
+
+    // 在线状态
+    if (data?.onlineUsers?.length > 0) {
+        tickets.value = tickets.value.map(ticket => {
+            const isOnline = data.onlineUsers.some(user =>
+                user.userId === ticket.createrId &&
+                user.ticketId === ticket.ticketId
+            );
+            return { ...ticket, onlineStatus: isOnline };
+        });
+    }
 }
 
 
@@ -160,6 +190,13 @@ setInterval(() => {
 </script>
 
 <style scoped>
+.sidebar-container {
+    height: 100vh;
+    border: 1px solid var(--el-border-color);
+    border-radius: 5px;
+    background-color: #333333;
+}
+
 .menu-item-content {
     display: flex;
     flex-direction: column;

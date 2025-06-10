@@ -79,8 +79,9 @@
                     style="margin-right: 10px" />
                 <el-tooltip content="上传图片" placement="top" v-if="newMessage.length === 0">
                     <!-- 上传图片 -->
-                    <el-upload class="upload-demo" :action="getImgUploadUrl()" name="file" :show-file-list="false"
-                        :on-success="handleUploadSuccess" :before-upload="beforeUpload" :disabled="!isConnected">
+                    <el-upload class="upload-demo" :action="getImgUploadUrl()" name="file" :data="{ ticketId: ticketId }"
+                        :show-file-list="false" :on-success="handleUploadSuccess" :before-upload="beforeUpload"
+                        :disabled="!isConnected">
                         <el-button type="success" :icon=Plus size="small" circle>
                         </el-button>
                     </el-upload>
@@ -331,7 +332,7 @@ function sendImageMessage(imageName) {
 
 function beforeUpload(file) {
     const isImage = file.type.startsWith('image/');
-    const isLt8M = file.size / 1024 / 1024 < 8;
+    const isLt2M = file.size / 1024 / 1024 < 2;
 
     if (!isImage) {
         ElMessage({
@@ -341,15 +342,15 @@ function beforeUpload(file) {
         })
         return false
     }
-    if (!isLt8M) {
+    if (!isLt2M) {
         ElMessage({
-            message: '图片不能超过 8MB!',
+            message: '图片不能超过 2MB!',
             grouping: true,
             type: 'error',
         })
         return false
     }
-    return isImage && isLt8M;
+    return isImage && isLt2M;
 }
 
 

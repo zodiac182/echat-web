@@ -29,6 +29,7 @@ server {
     }
 
     location /public/ {
+        client_max_body_size 2M;
         proxy_pass http://${SERVER_HOST}:${SERVER_PORT}/public/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
